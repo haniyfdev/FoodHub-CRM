@@ -11,6 +11,7 @@ class User(AbstractUser):
 # -- -- -- -- -- -- -- -- -- -- 
 class RestaurantModel(models.Model): # abstract model. barcha modellar shundan meros oladi
     restaurant = models.ForeignKey('users.Restaurant', on_delete=models.CASCADE)
+    
     class Meta:
         abstract = True
 
@@ -20,8 +21,8 @@ class Restaurant(models.Model):
     address    = models.TextField(blank=True, null=True)
     created_at = models.DateTimeField(auto_now_add=True)
     password   = models.CharField(validators=[MinLengthValidator(8)], max_length=16)
-    is_active  = models.BooleanField()
-    paid_until = models.DateTimeField()
+    is_active  = models.BooleanField(default=True)
+    paid_until = models.DateTimeField(null=True, blank=True)
 
 # -- -- -- -- -- -- -- -- -- -- 
 class Profile(RestaurantModel):

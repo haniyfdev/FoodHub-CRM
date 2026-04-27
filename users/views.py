@@ -15,14 +15,23 @@ class LoginRateThrottle(AnonRateThrottle):
 
 # -- -- -- -- -- -- -- -- -- --
 class RegisterView(APIView):
-    permission_classes = [AllowAny]
+    permission_classes     = [AllowAny]
+    authentication_classes = []
 
+    def get(self, request):
+        return Response({'message': "M'alumotlarni POST orqali yuboring"})
     def post(self, request):
         serializer = RegisterSerializer(data=request.data)
         # user'dan kelgan json'dan --> python obj
 
         if serializer.is_valid(): # pyobj'ni validation qilamiz
-            user = serializer.save() # created user obj (raw)
+            user       = serializer.save() # created user obj (raw)
+            # restaurant = Restaurant.objects.first()
+            # if restaurant:
+            #     Profile.objects.create(user=user, restaurant=restaurant)
+            # else:
+            #     pass
+            # profile    = Profile.objects.create(user=user, restaurant=restaurant)
 
             refresh = RefreshToken.for_user(user)
             # user'ni ma'lumotlari bilan refresh token generation bo'layapti
@@ -34,7 +43,11 @@ class RegisterView(APIView):
                  # .access_token deganda refresh tokendan user_id'ni olib darxol access_token yasaydi
                     'refresh': str(refresh),
                 },
-                'user': UserSerializer(user).data, # py.obj -> json
+                'user': {
+                    'id':       user.id,
+                    'username': user.username,
+                    'email':    user.email,
+                }# py.obj -> json
             }, status=status.HTTP_201_CREATED)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
@@ -66,7 +79,7 @@ class LogOutView(APIView):
 
         except Exception as e:
             return Response(
-                {'error': f"Tokenda xatolik: {e}"},
+                {'error': f"Tokenda xatolik: {str(e)}"},
                 status=status.HTTP_400_BAD_REQUEST
             )
         

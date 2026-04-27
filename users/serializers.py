@@ -1,9 +1,11 @@
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model
 from rest_framework import serializers
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from .models import Profile, Restaurant
 from django.contrib.auth.hashers import make_password
 from datetime import timedelta, timezone
+
+User = get_user_model()
 
 # -- -- -- -- -- -- -- -- -- --
 class ProfileSerializer(serializers.ModelSerializer):
@@ -14,10 +16,15 @@ class ProfileSerializer(serializers.ModelSerializer):
 
 # -- -- -- -- -- -- -- -- -- --
 class UserSerializer(serializers.ModelSerializer):
-    profile = ProfileSerializer(read_only=True)
+    # profile = ProfileSerializer(read_only=True, required=False, allow_null=True)
     class Meta:
         model  = User
-        fields = ['id', 'username', 'email', 'first_name', 'last_name', 'profile'] 
+        fields = ['id', 'username', 'email', 'first_name', 'last_name'] 
+
+    def get_profile_data(self, obj):
+        if hasattr(obj, 'profile') and obj.profile:
+            return ProfileSerializer(obj.profile).data
+        return None
 
 # -- -- -- -- -- -- -- -- -- --
 class RegisterSerializer(serializers.ModelSerializer):
@@ -84,6 +91,3 @@ class RestaurantSerializer(serializers.ModelSerializer):
         restaurant.save() # saqlaymiz
         
         return restaurant
-
-
-

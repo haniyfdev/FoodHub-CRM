@@ -18,6 +18,9 @@ class CategoryViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return Category.objects.annotate(product_count=Count('items')
                         ).select_related('restaurant').order_by('name')
+    
+    def perform_create(self, serializer):
+        serializer.save(restaurant=self.request.user.profile.restaurant)
 
 # -- -- -- -- -- -- -- -- -- -- 
 class MenuItemViewSet(viewsets.ModelViewSet):
@@ -27,6 +30,9 @@ class MenuItemViewSet(viewsets.ModelViewSet):
     def get_queryset(self):
         return MenuItem.objects.select_related('category', 'restaurant').order_by('name')
     
+    def perform_create(self, serializer):
+        serializer.save(restaurant=self.request.user.profile.restaurant)
+
 # -- -- -- -- -- -- -- -- -- -- 
 class OrderViewSet(viewsets.ModelViewSet):
     serializer_class   = OrderSerializer

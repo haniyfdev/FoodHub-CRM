@@ -5,10 +5,10 @@ from .import views
 app_name = 'api'
 
 urlpatterns = [
-    path('auth/register/', views.RegisterView.as_view(), name='register'),
-    path('auth/login/', views.LoginView.as_view(), name='login'),
-    path('auth/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
-    path('auth/verify/', TokenVerifyView.as_view(), name='token_verify'),
-    path('auth/logout/', views.LogOutView.as_view(), name='logout'),
-    path('auth/me/', views.MeView.as_view(), name='me'),
+    path('register/', views.RegisterView.as_view(), name='register'),
+    path('login/', views.LoginView.as_view(), name='login'),
+    path('refresh/', TokenRefreshView.as_view(), name='token_refresh'),
+    path('verify/', TokenVerifyView.as_view(), name='token_verify'),
+    path('logout/', views.LogOutView.as_view(), name='logout'),
+    path('me/', views.MeView.as_view(), name='me'),
 ]   
