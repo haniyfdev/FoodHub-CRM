@@ -3,6 +3,10 @@ from users.models import RestaurantModel
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.core.validators import MinValueValidator
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
 
 User = get_user_model()
 
@@ -79,4 +83,24 @@ class Transaction(RestaurantModel):
     def __str__(self):
         return f"{self.payment_type} - {self.amount}"
     
+# -- -- -- -- -- -- -- -- -- --
+@receiver(post_save, sender=Order)
+def notify_boss(sender, instance, created, **kwargs):
+    if created: # if true bo'lsa demak update emas created ekan
+        channel_layer = get_channel_layer() # redis bilan connect
+        # signal async bo'lmagani uchun kerek
+        async_to_sync(channel_layer.group_send)(
+            'boss_updates', #qaysi guruhga ?
+            {
+                "type": "send_order_update",
+                "message": {
+                    # boss'ga boradigan ma'lumotlar
+                    'event': 'new_order',
+                    'order_id': instance.id,
+                    'total_price': str(instance.total_price),
+                    'status': 'Yangi buyurtma keldi'
+                }
+            }
+        )
+
 
