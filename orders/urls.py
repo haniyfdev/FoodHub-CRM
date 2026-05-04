@@ -11,4 +11,5 @@ router.register(r'transactions', views.TransactionViewSet, basename='transaction
 
 urlpatterns = [
     path('', include(router.urls)),
+    path('dashboard/stats/', views.BossDashboardAPI.as_view(), name='boss-stats'),
 ]

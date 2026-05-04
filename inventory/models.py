@@ -2,6 +2,11 @@ from django.db import models
 from users.models import RestaurantModel, Profile
 from orders.models import MenuItem
 from django.core.validators import MinValueValidator
+from django.db.models.signals import post_save
+from django.dispatch import receiver
+from asgiref.sync import async_to_sync
+from channels.layers import get_channel_layer
+from .models import Product
 
 # -- -- -- -- -- -- -- -- -- -- 
 class Product(RestaurantModel):
@@ -44,6 +49,24 @@ class Waste(RestaurantModel):
         item = self.menu_item.name if self.menu_item else self.product.name
         return f"{item} - {self.reason}"
     
+# -- -- -- -- -- -- -- -- -- -- 
+@receiver(post_save, sender=Product)
+def check_stock(sender, instance, **kwargs):
+    if instance.quantity < 10:
+        channel_layer = get_channel_layer()
+        async_to_sync(channel_layer.group_send)(
+            'boss_updates', # biz ochgan guruh
+            {
+                'type': 'send_order_update',
+                'message': {
+                    'event': 'inventory_warning',
+                    'product_name': instance.name,
+                    'quantity': instance.quantity,
+                    'unit': instance.unit,
+                    'status': f"Diqqat! {instance.name} tugayapti ⚠️"
+                }
+            }
+        )
 
 
 

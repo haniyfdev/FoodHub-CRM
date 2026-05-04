@@ -7,6 +7,9 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
+from datetime import timezone
+from django.db.models import Sum, Count
+from rest_framework.response import Response
 
 User = get_user_model()
 
@@ -87,20 +90,33 @@ class Transaction(RestaurantModel):
 @receiver(post_save, sender=Order)
 def notify_boss(sender, instance, created, **kwargs):
     if created: # if true bo'lsa demak update emas created ekan
-        channel_layer = get_channel_layer() # redis bilan connect
-        # signal async bo'lmagani uchun kerek
+        channel_layer = get_channel_layer()
+        group_name = f"restaurant_{instance.restaurant.id}_updates"
+
+        # daily savdoni qayta hisoblaymiz
+        today = timezone.now().date()
+        daily_revenue = Order.objects.filter(
+            restaurant = instance.restaurant,
+            created_at__date = today,
+            status = 'completed'
+        ).aggregate(total=Sum('total_price'))['total'] or 0
+
         async_to_sync(channel_layer.group_send)(
-            'boss_updates', #qaysi guruhga ?
+            group_name,
             {
-                "type": "send_order_update",
-                "message": {
-                    # boss'ga boradigan ma'lumotlar
+                'type': 'send_order_update',
+                'messsage': {
                     'event': 'new_order',
                     'order_id': instance.id,
                     'total_price': str(instance.total_price),
-                    'status': 'Yangi buyurtma keldi'
+                    'new_daily_total': str(daily_revenue),
+                    'status': 'New order 🚀'
                 }
             }
         )
+        
+
+
+
 
 

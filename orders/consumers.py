@@ -1,38 +1,38 @@
 import json
-from channels.generic.websocket import AsyncJsonWebsocketConsumer
+from channels.generic.websocket import AsyncWebsocketConsumer
 
-class OrderConsumer(AsyncJsonWebsocketConsumer):
+class OrderConsumer(AsyncWebsocketConsumer):
     async def connect(self):
-        self.room_group_name = 'boss_updates'
-        # boss uchun maxsus kanal guruhi
+        # JwtAuthMiddleware orqali foydalanuvchini olamiz
+        self.user = self.scope.get("user")
 
-        # Barcha kanallarni bir umumiy guruhga qo'shamiz
-        await self.channel_layer.group_add(
-            self.room_group_name,
-            self.channel_name
-        )
+        # Login qilmagan foydalanuvchini bloklaymiz
+        if not self.user or self.user.is_anonymous:
+            await self.close()
+            return
 
-        # ulanishni rasman qabul qilamiz
-        await self.accept() #handshake
-        
-# - - - - - - - - - - - - - - - 
+        # Foydalanuvchining restoran ID sini olamiz
+        try:
+            self.restaurant_id = self.user.profile.restaurant.id
+            self.room_group_name = f'restaurant_{self.restaurant_id}_updates'
 
-    # 2.Mijoz brauzerni yopsa yoki ulanish uzilsa ishlaydi
-    async def disconnect(self, code):
-        # ulanish uzildimi, guruhdan o'chiramiz
-        await self.channel_layer.group_discard(
-            self.room_group_name,
-            self.channel_name
-        )
+            # Guruhga qo'shilamiz
+            await self.channel_layer.group_add(
+                self.room_group_name,
+                self.channel_name
+            )
+            await self.accept() # Aloqani ochamiz
+        except Exception:
+            await self.close()
 
-# - - - - - - - - - - - - - - - 
-    
-    # 3.Bu metod guruhdan xabar kelganda uni tutuib oladi
-    # signal orqali 'send_order_update' turi yuborilda shu ishga tushadi
+    async def disconnect(self, close_code):
+        # Ulanish uzilganda guruhdan chiqish
+        if hasattr(self, 'room_group_name'):
+            await self.channel_layer.group_discard(
+                self.room_group_name,
+                self.channel_name
+            )
 
+    # Signal'dan kelgan xabarni tutib brauzerga yuborish
     async def send_order_update(self, event):
-        # Siganl yuborgan ma'lumotni (message)ni ajratib olamiz
-        message = event['message']
-
-        await self.send(text_data=json.dumps(message))
-        
+        await self.send(text_data=json.dumps(event['message']))
